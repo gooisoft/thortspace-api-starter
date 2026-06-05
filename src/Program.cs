@@ -56,6 +56,9 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task<int> Run()
     {
+        // Show where we're loading the engine from (the standard install folder unless THORTSPACE_SDK_DIR overrides).
+        Console.WriteLine($"Thortspace SDK: {SdkDir}");
+
         var email = Environment.GetEnvironmentVariable("THORTSPACE_EMAIL");
         var password = Environment.GetEnvironmentVariable("THORTSPACE_PASSWORD");
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))

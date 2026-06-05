@@ -22,20 +22,27 @@ This repo is two things:
 ## What you need
 
 - **Windows** and the **.NET 8 SDK** — https://dotnet.microsoft.com/download
-- **An installed Thortspace** that ships the SDK DLLs (`Thortspace.Headless.dll` + its dependencies). Point the
-  build/runtime at that folder (see below).
+- **An installed Thortspace** — it ships the SDK DLLs (`Thortspace.Headless.dll` + dependencies). If you
+  installed it normally there's **nothing to configure**: the starter finds them automatically at
+  `%LOCALAPPDATA%\ThortspaceX64\current`.
 - **A Thortspace account** — the sphere is created in whichever account you log in as.
 
 ## Set up
 
-The project resolves `Thortspace.Headless.dll` and its dependencies from one folder — your Thortspace SDK
-directory. Tell it where that is (skip this if Thortspace is installed at the default
-`%LOCALAPPDATA%\ThortspaceX64\current`):
+You only need your login. The starter finds the Thortspace SDK DLLs automatically in the standard install
+folder &mdash; **`%LOCALAPPDATA%\ThortspaceX64\current`** (that is
+`C:\Users\<you>\AppData\Local\ThortspaceX64\current`):
 
 ```powershell
-$env:THORTSPACE_SDK_DIR = "C:\full\path\to\thortspace\sdk\dlls"   # contains Thortspace.Headless.dll + deps
 $env:THORTSPACE_EMAIL    = "you@example.com"
 $env:THORTSPACE_PASSWORD = "..."
+```
+
+Only if your Thortspace is installed somewhere non-standard, point the starter at the install folder that
+contains `Thortspace.Headless.dll`:
+
+```powershell
+$env:THORTSPACE_SDK_DIR = "D:\Apps\Thortspace\current"   # optional override
 ```
 
 ## Run it
