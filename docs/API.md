@@ -6,9 +6,9 @@ engine, and call its methods **in your own process**. No socket, server or netwo
 and the engine. This page is the reference; the [starter project](../README.md) is a worked example.
 
 > There is also an **MCP** surface that re-exposes this same engine as self-describing tools, so an AI client can
-> drive Thortspace with no code (an in-app server for the running desktop app, and a standalone headless one).
-> That's a separate front over the *same* engine — see *Connecting an AI* in the README. Everything below is the
-> direct API.
+> drive Thortspace with no code: the bundled **standalone stdio server** `Thortspace.Mcp.exe` (the no-code twin of
+> this DLL path), plus an in-app HTTP server for the running desktop app. See *The standalone MCP server* in the
+> README. Everything below is the direct API.
 
 ## Referencing it
 
@@ -62,40 +62,62 @@ synchronous (marshalled + applied on the engine pump, laid out as they apply).
 
 | Member | Signature | Notes |
 |---|---|---|
-| `AddThort` | `Guid` `(text, groupId?, nearThortId?, nearGroupId?, link?, markAi=false)` | **placement:** `groupId` adds into that group; `nearThortId`/`nearGroupId` places near the target; none = spread. `link` attaches an http(s) URL. A leading `#` highlights a word. |
+| `AddThort` | `Guid` `(text, groupId?, nearThortId?, nearGroupId?, link?, markAi=false, placement?)` | **placement:** `groupId` adds into that group (thorts form a hex lattice); `nearThortId`/`nearGroupId` places near the target; else `placement` `"spread"`/`"cluster"` or the radius default. `link` attaches an http(s) URL. A leading `#` highlights a word. |
 | `SetThortText` | `bool` `(thortId, text)` | |
 | `DeleteThort` | `bool` `(thortId)` | also removes paths to/from it |
 | `Connect` | `object` `(from, to, relationship)` | `from`/`to` may be thort **or** group ids; `relationship` is a free label reused by name |
 | `Disconnect` | `bool` `(from, to)` | removes the path either direction |
-| `CreateGroup` | `Guid` `(IEnumerable<Guid> thortIds)` | moves the given thorts into a new group, near where they were |
+| `CreateGroup` | `Guid` `(IEnumerable<Guid> thortIds, placement?)` | moves the given thorts into a new group, near where they were |
 | `MoveGroup` | `bool` `(groupId, x, y, z)` | (x,y,z) is a direction vector projected onto the sphere surface |
 | `MoveThort` | `bool` `(thortId, targetGroupId?, x?, y?)` | move into a group and/or reposition within it |
 | `RenameGroup` | `bool` `(groupId, name)` | |
 | `GroupOfThort` | `Guid?` `(thortId)` | |
 | `SetThortCategory` | `bool` `(thortId, categoryRef)` | apply a category (colour / cross-cutting dimension) |
 | `AddCategory` | `Guid` `(name, r?, g?, b?)` | new category in the primary set (rgb 0–255) |
-| `RenameCategory` / `RecolourCategory` / `RemoveCategory` | `bool` | |
-| `AddCategorySet` | `Guid` `(name)` | a separate colouring dimension |
+| `RenameCategory` / `RemoveCategory` | `bool` | |
+| `RecolourCategory` | `bool` `(catId, r, g, b, textR?, textG?, textB?)` | background + optional text colour. Keep backgrounds **pastel** (prefer `RenameCategory`); if a background is strong/dark, set whitish text. |
+| `AddCategorySet` / `RenameCategorySet` / `RemoveCategorySet` | `Guid` / `bool` | a category set is a separate colouring dimension (keeps ≥1) |
 | `SetDefaultCategory` | `bool` `(catId)` | |
-| `RenamePathType` | `bool` `(nameOrId, newName)` | renames a relationship type everywhere it's used |
+| `RenamePathType` / `RecolourPathType` / `ReorderPathTypes` | `bool` | relationship types; full colours belong on paths |
 | `CreateArrangement` | `Guid` `(name)` | copy the current layout into a new, independently-rearrangeable view (non-destructive reframe) |
-| `SwitchArrangement` | `bool` `(arrangementId)` | which arrangement subsequent edits/snapshots operate on |
-| `RenameArrangement` | `bool` `(arrangementId, name)` | |
+| `SwitchArrangement` / `RenameArrangement` / `DeleteArrangement` / `ReorderArrangements` | `bool` | which arrangement edits/snapshots target; manage the set (keeps ≥1) |
+| `RenameSphere` / `SetSpherePublic` | `bool` | the open sphere's title / publish state |
 | `Relayout` | `void` `()` | auto-movement: coagulates thorts within groups **and** spreads groups apart |
 | `Coagulate` | `void` `()` | tidy each group into a hex lattice **without** spreading groups apart |
+| `ArrangeGroup` | `bool` `(groupId, formation)` | re-lay a group's thorts: `"hex"` (default), `"line"`, `"ring"`, `"square"`, `"freeform"` |
+| `Arrange` | `object` `(scope?, style?, spacing?, reduceCrossings)` | topology-aware layout: clusters related groups + **reduces path crossings** (chain→arc, star→spokes, tree→layered, cycle→ring). `scope` null = whole arrangement; `spacing` `"spread"`/`"cluster"`. |
 | `Snapshot` | `object` `()` | current state of the open sphere (shape below) |
+
+### Journeys (guided "trips")
+
+A journey is an ordered sequence of view-steps; each step records an arrangement, a focus node and a narration.
+The camera is **derived from the focus at playback**, so authoring just sets focus + framing. Authoring works
+headless; **persisting a journey to the cloud needs a sync-enabled account** (same gate as a private sphere).
+Playback is in-app (Present mode) only.
+
+| Member | Signature | Notes |
+|---|---|---|
+| `CreateTrip` | `string` `(name)` | returns the trip id |
+| `AddTripStep` | `bool` `(tripId, description, arrangementId?, focusGroupId?, focusThortId?, name?, framing?)` | `framing`: `"group"` (default), `"thort"`, `"wide"`/`"overview"`, `"neighbourhood"`. A focus-less overview step aims at the content centroid. |
+| `ListTrips` / `GetTrip` | `object` | list / fetch one trip's steps |
+| `RenameTrip` / `SetTripPublic` | `bool` | |
+| `EditTripStep` / `DeleteTripStep` / `ReorderTripSteps` | `bool` | edit by 0-based step index |
+| `DeleteTrip` | `bool` `(tripId)` | |
 
 ### `Snapshot()` shape
 
 ```json
 {
   "arrangementId": "<guid>",
+  "radius": 140,
   "collaborating": true,
   "arrangements": [ { "id": "<guid>", "name": "Initial" } ],
   "thorts":  [ { "id": "<guid>", "text": "...", "groupId": "<guid|null>", "categoryId": "<guid|null>" } ],
   "groups":  [ { "id": "<guid>", "location": { "x": .., "y": .., "z": .. }, "thortIds": ["<guid>", ...] } ],
   "paths":   [ { "from": "<guid>", "to": "<guid>", "relationship": "responds-to" } ],
-  "categorySet": { "id": "<guid>", "name": "...", "categories": [ { "id": "<guid>", "name": "...", "color": {"r":..,"g":..,"b":..} } ] }
+  "pathTypes":   [ { "id": "<guid>", "name": "...", "color": {"r":..,"g":..,"b":..} } ],
+  "categorySet": { "id": "<guid>", "name": "...", "categories": [ { "id": "<guid>", "name": "...", "color": {"r":..,"g":..,"b":..} } ] },
+  "categorySets": [ { "id": "<guid>", "name": "Colours" } ]
 }
 ```
 
@@ -111,6 +133,10 @@ about *what is near what* when placing new content.
   `SaveAsync` returns `400`.
 - **Collaboration connect is slow & variable** (it races candidate addresses + TLS). After `HostSession`, poll
   `Snapshot().collaborating` (or watch `SphereChanged`) rather than editing on a fixed timer.
+- **Journeys need a sync-enabled account.** `CreateTrip`/`AddTripStep` work on any account, but the trip only
+  *persists* to the cloud on a sync-enabled account (same gate as a private sphere).
+- **Keep category backgrounds pastel.** The default palette is pastel by design so paths + dark text read over
+  it — *rename* categories rather than recolouring them strong; reserve full colours for path types.
 
 ## Concepts in one paragraph
 

@@ -1,18 +1,18 @@
-using System;
-using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
+using System.Text.Json;
+using Thortspace.Headless;
 
 namespace ThortspaceApiStarter;
 
 // Thortspace API starter — drives Thortspace directly by referencing Thortspace.Headless.dll (the in-process
-// command API) and running the engine IN your own process. No socket, no server, no network layer: you call the
-// engine's methods and it creates/edits/saves spheres in the cloud account you log in as.
+// command API) and running the engine IN your own process. No socket, no server: you call the engine's methods
+// and it creates/edits/saves spheres in the cloud account you log in as.
 //
-// What it does: logs in, CREATES A FRESH SPHERE (so it never touches anything you already have open), builds a
-// little graph in it (thorts -> typed paths -> group -> layout), and saves it to the cloud.
+// What it does: takes a TOPIC (edit the constant below), fetches a reference page (Wikipedia by default),
+// and builds a sphere out of it — groups of thorts, typed relationships, a colour scheme, TWO arrangements,
+// and a guided JOURNEY — demonstrating (almost) the whole engine surface. Then saves it to the cloud.
 //
 //   Requirements:  Windows, .NET 8 SDK, and an installed Thortspace that provides the SDK DLLs (see README).
 //   Set:           THORTSPACE_EMAIL, THORTSPACE_PASSWORD   (the account the sphere is created in)
@@ -20,43 +20,42 @@ namespace ThortspaceApiStarter;
 //   Run:           dotnet run --project src
 internal static class Program
 {
-    // Where the Thortspace SDK DLLs live. Defaults to a standard Windows install; override via env var.
+    // ===================== EDIT ME =====================
+    // The topic to build a sphere about (any Wikipedia article title works).
+    private const string Topic = "Photosynthesis";
+
+    // Where the content comes from. Wikipedia works out-of-the-box; GrokipediaContentSource is a stub
+    // (grokipedia.com 403-blocks plain HTTP) you can implement with your own access.
+    private static readonly IContentSource Source = new WikipediaContentSource();
+    // ===================================================
+
     private static readonly string SdkDir =
         Environment.GetEnvironmentVariable("THORTSPACE_SDK_DIR")
         ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ThortspaceX64", "current");
 
     private static async Task<int> Main()
     {
-        // Resolve Thortspace.Headless.dll + its dependency DLLs from the SDK folder at runtime, so this starter can
-        // live anywhere. Registered BEFORE any Thortspace type is touched — the engine work is in Run() (never
-        // inlined), so its assembly only loads after this handler is in place.
+        // Resolve Thortspace.Headless.dll + its dependency DLLs from the SDK folder at runtime (registered BEFORE
+        // any Thortspace type is touched — the engine work is in Run(), never inlined).
         AppDomain.CurrentDomain.AssemblyResolve += (_, e) =>
         {
             var dll = Path.Combine(SdkDir, new AssemblyName(e.Name).Name + ".dll");
             return File.Exists(dll) ? Assembly.LoadFrom(dll) : null;
         };
 
-        try
-        {
-            return await Run();
-        }
+        try { return await Run(); }
         catch (FileNotFoundException ex)
         {
             Console.Error.WriteLine("Could not load the Thortspace SDK: " + ex.Message);
             Console.Error.WriteLine($"Set THORTSPACE_SDK_DIR to the folder containing Thortspace.Headless.dll (looked in: {SdkDir}).");
             return 1;
         }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine("ERROR: " + ex);
-            return 1;
-        }
+        catch (Exception ex) { Console.Error.WriteLine("ERROR: " + ex); return 1; }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task<int> Run()
     {
-        // Show where we're loading the engine from (the standard install folder unless THORTSPACE_SDK_DIR overrides).
         Console.WriteLine($"Thortspace SDK: {SdkDir}");
 
         var email = Environment.GetEnvironmentVariable("THORTSPACE_EMAIL");
@@ -67,44 +66,127 @@ internal static class Program
             return 2;
         }
 
-        // Stand up an in-process engine. The cache dir holds this client's own install id + local state.
-        var cacheDir = Path.Combine(Path.GetTempPath(), "ThortspaceApiStarter");
-        var engine = new Thortspace.Headless.HeadlessEngine(cacheDir);
+        // ---- 0. Fetch the source material for the topic. ----
+        Console.WriteLine($"Fetching \"{Topic}\" …");
+        var page = await Source.FetchAsync(Topic);
+        Console.WriteLine($"  \"{page.Title}\" — {page.Sections.Count} sections.");
 
-        var login = await engine.LoginAsync(email, password);
-        if (login != HttpStatusCode.OK) { Console.Error.WriteLine($"Login failed: {login}"); return 3; }
+        // ---- 1. Stand up the engine + log in. ----
+        var engine = new HeadlessEngine(Path.Combine(Path.GetTempPath(), "ThortspaceApiStarter"));
+        if (await engine.LoginAsync(email, password) != HttpStatusCode.OK) { Console.Error.WriteLine("Login failed."); return 3; }
         Console.WriteLine("Logged in.");
 
-        // 1. Create a FRESH sphere and open it as the editable session. public:true so it cloud-saves on any
-        //    account tier (a PRIVATE sphere on a free account is frozen — it needs a sync-enabled account).
-        var title = "Thortspace API starter — " + DateTime.Now.ToString("yyyy-MM-dd HH:mm");
-        var (createCode, localId, cloudId) = await engine.CreateSphereAsync(title, isPublic: true);
+        // ---- 2. Create a fresh PUBLIC sphere (saves on any account tier) and open it as the editable session. ----
+        var (createCode, localId, cloudId) = await engine.CreateSphereAsync($"{page.Title} — Thortspace API starter", isPublic: true);
         if (createCode != HttpStatusCode.OK) { Console.Error.WriteLine($"Create failed: {createCode}"); return 4; }
-        await engine.OpenSphereAsync(localId);
+        await engine.OpenSphereAsync(localId);                                  // create does NOT open — do it explicitly
+        var initialArrangement = ArrangementId(engine);
         Console.WriteLine($"Created sphere (cloudId={cloudId}).");
 
-        // 2. Build a little graph: three thorts joined by typed paths, gathered into a group, then laid out.
-        //    A leading # highlights a key word. Place ideas in context; here we chain them.
-        var confusion = engine.AddThort("#Confusion — the tangle we start with");
-        var breakItDown = engine.AddThort("Break it into smaller parts");
-        var insight = engine.AddThort("#Insight — the part that clicks");
-        engine.Connect(confusion, breakItDown, "leads-to");
-        engine.Connect(breakItDown, insight, "leads-to");
-        engine.CreateGroup(new[] { confusion, breakItDown, insight });
-        engine.Relayout();
-        Console.WriteLine("Added 3 thorts, connected them, grouped, and laid out.");
+        // ---- 3. A GROUP per section; thorts inside form Thortspace's hex lattice. ----
+        var groups = new List<(string Heading, Guid Group, List<Guid> Thorts)>();
+        foreach (var section in page.Sections)
+        {
+            var thortIds = new List<Guid>();
+            var first = engine.AddThort(section.Thorts[0]);                     // new thort -> its own new group
+            var groupId = engine.GroupOfThort(first)!.Value;                    // find that group
+            thortIds.Add(first);
+            foreach (var line in section.Thorts.Skip(1))
+                thortIds.Add(engine.AddThort(line, groupId: groupId));          // add into the group (hex default)
+            engine.RenameGroup(groupId, section.Heading);
+            engine.ArrangeGroup(groupId, "hex");                               // explicit: tidy into the hex lattice
+            groups.Add((section.Heading, groupId, thortIds));
+        }
+        Console.WriteLine($"Built {groups.Count} groups, {groups.Sum(g => g.Thorts.Count)} thorts.");
 
-        // 3. Save to the cloud.
+        // ---- 4. Typed RELATIONSHIPS: chain the sections (group -> group). 'arrange' will untangle it. ----
+        for (var i = 0; i < groups.Count - 1; i++)
+            engine.Connect(groups[i].Group, groups[i + 1].Group, i == 0 ? "introduces" : "then");
+        // Give the chain relationship a strong, full colour — full colours belong on PATHS (thort backgrounds stay pastel).
+        engine.RecolourPathType("then", 45, 107, 255);
+
+        // ---- 5. CATEGORIES (a cross-cutting COLOUR dimension). Thortspace's default palette is deliberately
+        //         PASTEL (so paths + dark text read over it), so we RENAME the existing colours rather than recolour
+        //         them. (Meaningful categorisation is a semantic job — the AI/MCP path does it best; here we use a
+        //         simple structural scheme to show the API.)
+        var cats = CategoryIds(engine);
+        if (cats.Count >= 3)
+        {
+            engine.RenameCategory(Guid.Parse(cats[0]), "Overview");
+            engine.RenameCategory(Guid.Parse(cats[1]), "Key point");
+            engine.RenameCategory(Guid.Parse(cats[2]), "Detail");
+            foreach (var (heading, _, thortIds) in groups)
+                for (var i = 0; i < thortIds.Count; i++)
+                    engine.SetThortCategory(thortIds[i], heading == "Overview" ? "Overview" : i == 0 ? "Key point" : "Detail");
+        }
+
+        // ---- 6. LAY IT OUT. 'arrange' clusters related groups + reduces path crossings (the chain -> a clean arc). ----
+        engine.Arrange(null, null, null, reduceCrossings: true);
+
+        // ---- 7. A SECOND ARRANGEMENT — the same thorts, reframed. Here: a spread-out "wide view". ----
+        var wide = engine.CreateArrangement("Wide view");
+        engine.SwitchArrangement(wide);
+        engine.Arrange(null, null, "spread", reduceCrossings: true);
+        engine.SwitchArrangement(Guid.Parse(initialArrangement));              // back to the main arrangement
+        Console.WriteLine("Arranged; added a 'Wide view' arrangement.");
+
+        // ---- 8. A guided JOURNEY (Present-mode trip): a step per section, then a focus-less overview step. ----
+        var tripId = engine.CreateTrip($"{page.Title} — a guided tour");
+        foreach (var (heading, group, thortIds) in groups)
+        {
+            var narration = thortIds.Count > 0 ? $"{heading}." : heading;
+            engine.AddTripStep(tripId, narration, arrangementId: null, focusGroupId: group.ToString(),
+                focusThortId: null, name: heading, framing: "group");
+        }
+        // A whole-picture step with NO focus, in the Wide arrangement — the engine aims the camera at the content
+        // centroid (so an overview step never faces the empty far side of the sphere).
+        engine.AddTripStep(tripId, "Step back and see the whole landscape.", arrangementId: wide.ToString(),
+            focusGroupId: null, focusThortId: null, name: "The whole picture", framing: "overview");
+        Console.WriteLine($"Authored a {((JsonElement)JsonSerializer.SerializeToElement(engine.GetTrip(tripId))).GetProperty("steps").GetArrayLength()}-step journey.");
+
+        // ---- 9. Save to the cloud. ----
         var save = await engine.SaveAsync();
         Console.WriteLine($"Save: {save}");
         if (save != HttpStatusCode.OK)
         {
-            Console.Error.WriteLine("Save was rejected. (A private sphere on a free account is frozen; this demo " +
-                                    "uses a public sphere, which saves on any account — check the account/login.)");
+            Console.Error.WriteLine("Save rejected — a PRIVATE sphere on a free account is frozen; this demo uses a " +
+                                    "PUBLIC sphere, which saves on any account. Check the account/login.");
             return 5;
         }
 
-        Console.WriteLine($"Done. Open Thortspace (or thort.space) to see sphere {cloudId}.");
+        Console.WriteLine();
+        Console.WriteLine($"Done. Open Thortspace (or thort.space) on this account to see sphere {cloudId}.");
+        Console.WriteLine("In Present mode you can PLAY the journey. NOTE: saving/playing your own journeys needs a");
+        Console.WriteLine("sync-enabled account (Premium / Subscriber / Trial / paid-org) — the same gate as private");
+        Console.WriteLine("spheres. On a free account the sphere + content save (it's public) but the journey stays local.");
+
+        // ---- Other engine operations you can explore (all on IAgentEngine / HeadlessEngine) ----
+        //   Content:   SetThortText, DeleteThort, Disconnect, MoveThort, MoveGroup, Coagulate, Relayout
+        //   Categories: AddCategory, RecolourCategory(+optional text colour), RemoveCategory, AddCategorySet,
+        //               SetDefaultCategory, RenameCategorySet, RemoveCategorySet
+        //   Path types: RenamePathType, ReorderPathTypes
+        //   Arrangements: RenameArrangement, DeleteArrangement, ReorderArrangements
+        //   Sphere:    RenameSphere, SetSpherePublic, ListSpheres, Snapshot
+        //   Journeys:  RenameTrip, SetTripPublic, EditTripStep, DeleteTripStep, ReorderTripSteps, DeleteTrip
+        //   (In-app only — these need the running desktop app, not the headless engine: NavigateTo, SetWorkingMode, PlayTrip.)
         return 0;
+    }
+
+    // Snapshot() returns an anonymous object; serialise + read the bits we need.
+    private static string ArrangementId(IAgentEngine engine)
+    {
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(engine.Snapshot()));
+        return doc.RootElement.GetProperty("arrangementId").GetString()!;
+    }
+
+    private static List<string> CategoryIds(IAgentEngine engine)
+    {
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(engine.Snapshot()));
+        var list = new List<string>();
+        if (doc.RootElement.TryGetProperty("categorySet", out var cs) && cs.ValueKind == JsonValueKind.Object
+            && cs.TryGetProperty("categories", out var categories))
+            foreach (var c in categories.EnumerateArray())
+                if (c.TryGetProperty("id", out var id)) list.Add(id.GetString()!);
+        return list;
     }
 }
