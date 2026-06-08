@@ -35,6 +35,12 @@ internal static class Program
 
     private static async Task<int> Main()
     {
+        // Opt-in diagnostics: the engine logs failure detail (login errors, exceptions) via System.Diagnostics.Trace,
+        // which has no listener by default. Set THORTSPACE_DEBUG=1 to route Trace → stderr so you can see WHY a login
+        // or save failed. Off by default so a normal run stays quiet.
+        if (Environment.GetEnvironmentVariable("THORTSPACE_DEBUG") == "1")
+            System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.TextWriterTraceListener(Console.Error));
+
         // Resolve Thortspace.Headless.dll + its dependency DLLs from the SDK folder at runtime (registered BEFORE
         // any Thortspace type is touched — the engine work is in Run(), never inlined).
         AppDomain.CurrentDomain.AssemblyResolve += (_, e) =>
@@ -212,7 +218,7 @@ internal static class Program
     // SAME %LOCALAPPDATA%\ThortspaceMcp\credentials.json the standalone MCP server (Thortspace.Mcp.exe) reads, so one
     // file serves both headless paths. Nothing is read from inside the repo. Plaintext on disk → use a dedicated /
     // TEST account (the file's contents are never printed; only the chosen path is logged).
-    private static (string email, string password) ResolveCredentials()
+    private static (string? email, string? password) ResolveCredentials()
     {
         var email = Environment.GetEnvironmentVariable("THORTSPACE_EMAIL");
         var password = Environment.GetEnvironmentVariable("THORTSPACE_PASSWORD");
