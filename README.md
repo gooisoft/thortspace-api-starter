@@ -41,6 +41,17 @@ $env:THORTSPACE_EMAIL    = "you@example.com"
 $env:THORTSPACE_PASSWORD = "..."
 ```
 
+**Or use a credentials file** (so you don't re-set env vars each session). Create a `credentials.json`:
+
+```json
+{ "email": "you@example.com", "password": "..." }
+```
+
+and put it **beside the project** (it's gitignored — never committed) or point `THORTSPACE_CREDENTIALS` at it.
+The starter also reads `%LOCALAPPDATA%\ThortspaceMcp\credentials.json` if present, so **one file serves both this
+starter and the standalone MCP server**. Env vars win over the file. It's plaintext on disk &mdash; use a
+**dedicated / test account**, and never commit it (the `credentials.json` pattern is already in `.gitignore`).
+
 Only if your Thortspace is installed somewhere non-standard, point the starter at the install folder that
 contains `Thortspace.Headless.dll`:
 

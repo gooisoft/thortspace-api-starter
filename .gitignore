@@ -10,3 +10,7 @@ obj/
 # OS
 .DS_Store
 Thumbs.db
+
+# Credentials — NEVER commit. The starter reads these at runtime; keep them on your machine only.
+credentials.json
+*.credentials.json

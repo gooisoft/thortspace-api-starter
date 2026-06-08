@@ -58,11 +58,13 @@ internal static class Program
     {
         Console.WriteLine($"Thortspace SDK: {SdkDir}");
 
-        var email = Environment.GetEnvironmentVariable("THORTSPACE_EMAIL");
-        var password = Environment.GetEnvironmentVariable("THORTSPACE_PASSWORD");
+        var (email, password) = ResolveCredentials();
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
-            Console.Error.WriteLine("Set THORTSPACE_EMAIL and THORTSPACE_PASSWORD (the account to create the sphere in).");
+            Console.Error.WriteLine("No credentials. Provide them either way:");
+            Console.Error.WriteLine("  - env vars THORTSPACE_EMAIL + THORTSPACE_PASSWORD, or");
+            Console.Error.WriteLine("  - a credentials.json {\"email\":\"...\",\"password\":\"...\"} at THORTSPACE_CREDENTIALS,");
+            Console.Error.WriteLine("    or beside the project (gitignored), or in %LOCALAPPDATA%\\ThortspaceMcp (shared with the MCP server).");
             return 2;
         }
 
@@ -203,6 +205,47 @@ internal static class Program
         //   Journeys:  RenameTrip, SetTripPublic, EditTripStep, DeleteTripStep, ReorderTripSteps, DeleteTrip
         //   (In-app only — these need the running desktop app, not the headless engine: NavigateTo, SetWorkingMode, PlayTrip.)
         return 0;
+    }
+
+    // Credentials come from (1) THORTSPACE_EMAIL / THORTSPACE_PASSWORD env vars, or (2) a credentials.json file —
+    // {"email":"...","password":"..."} — at THORTSPACE_CREDENTIALS, else beside the project (gitignored), else the
+    // SAME %LOCALAPPDATA%\ThortspaceMcp\credentials.json the standalone MCP server (Thortspace.Mcp.exe) reads, so one
+    // file serves both headless paths. Nothing is read from inside the repo. Plaintext on disk → use a dedicated /
+    // TEST account (the file's contents are never printed; only the chosen path is logged).
+    private static (string email, string password) ResolveCredentials()
+    {
+        var email = Environment.GetEnvironmentVariable("THORTSPACE_EMAIL");
+        var password = Environment.GetEnvironmentVariable("THORTSPACE_PASSWORD");
+        if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password)) return (email, password);
+
+        foreach (var path in CredentialFilePaths())
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) continue;
+            try
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(path));
+                var root = doc.RootElement;
+                if (string.IsNullOrEmpty(email) && root.TryGetProperty("email", out var em)) email = em.GetString();
+                if (string.IsNullOrEmpty(password) && root.TryGetProperty("password", out var pw)) password = pw.GetString();
+                if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+                {
+                    Console.WriteLine($"Using credentials file: {path}");
+                    return (email, password);
+                }
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"Could not read {path}: {ex.Message}"); }
+        }
+        return (email, password);
+    }
+
+    // Where to look for a credentials.json, in order. THORTSPACE_CREDENTIALS wins; then a file beside the project /
+    // built exe (keep it gitignored); finally the standalone MCP server's file, so the two headless stacks share one.
+    private static IEnumerable<string> CredentialFilePaths()
+    {
+        yield return Environment.GetEnvironmentVariable("THORTSPACE_CREDENTIALS");
+        yield return Path.Combine(Directory.GetCurrentDirectory(), "credentials.json");
+        yield return Path.Combine(AppContext.BaseDirectory, "credentials.json");
+        yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ThortspaceMcp", "credentials.json");
     }
 
     // Snapshot() returns an anonymous object; serialise + read the bits we need.
