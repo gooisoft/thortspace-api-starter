@@ -10,8 +10,8 @@ This repo is two things:
 
 1. **A runnable example** (`src/`) — takes a **topic** (a `Topic` constant you edit), fetches a reference page
    (Wikipedia by default), and builds a whole sphere from it: groups of thorts in hex lattices, typed
-   relationships, a pastel colour scheme, **two arrangements**, and a guided **journey** — then saves it. It
-   exercises most of the engine surface.
+   relationships, a pastel colour scheme, **two arrangements**, and a guided **journey** — then builds a **linked
+   companion sphere** and extends the journey to **span both spheres**, and saves. It exercises most of the engine surface.
 2. **The reference** — the [API reference](docs/API.md) for the engine surface (`IAgentEngine`).
 
 > The Thortspace, Thortcloud and web-client source repositories are private; this starter + docs are the public
@@ -67,6 +67,9 @@ Created sphere (cloudId=...).
 Built 6 groups, 21 thorts.
 Arranged; added a 'Wide view' arrangement.
 Authored a 7-step journey.
+Built + saved companion sphere (cloudId=...): OK.
+Linked the two spheres: OK (linked id ...).
+Added a cross-sphere journey step spanning both spheres.
 Save: OK
 Done. Open Thortspace (or thort.space) on this account to see sphere ...
 ```

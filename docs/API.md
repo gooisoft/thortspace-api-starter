@@ -82,6 +82,7 @@ synchronous (marshalled + applied on the engine pump, laid out as they apply).
 | `CreateArrangement` | `Guid` `(name)` | copy the current layout into a new, independently-rearrangeable view (non-destructive reframe) |
 | `SwitchArrangement` / `RenameArrangement` / `DeleteArrangement` / `ReorderArrangements` | `bool` | which arrangement edits/snapshots target; manage the set (keeps ≥1) |
 | `RenameSphere` / `SetSpherePublic` | `bool` | the open sphere's title / publish state |
+| `LinkSphereAsync` | `Task<(HttpStatusCode code, string otherLocalId, long otherCloudId)>` `(otherSphereIdOrCloud, nearGroupId?)` | link the open sphere to ANOTHER (bidirectional neighbourhood link, same as the app's "Add Link to Sphere"); loads the other sphere if needed. Both spheres must be on your account. Returns the linked sphere's ids — pass `otherLocalId` to `AddTripStep`'s `networkSphereId` so one journey **spans both spheres**. |
 | `Relayout` | `void` `()` | auto-movement: coagulates thorts within groups **and** spreads groups apart |
 | `Coagulate` | `void` `()` | tidy each group into a hex lattice **without** spreading groups apart |
 | `ArrangeGroup` | `bool` `(groupId, formation)` | re-lay a group's thorts: `"hex"` (default), `"line"`, `"ring"`, `"square"`, `"freeform"` |
@@ -93,12 +94,13 @@ synchronous (marshalled + applied on the engine pump, laid out as they apply).
 A journey is an ordered sequence of view-steps; each step records an arrangement, a focus node and a narration.
 The camera is **derived from the focus at playback**, so authoring just sets focus + framing. Authoring works
 headless; **persisting a journey to the cloud needs a sync-enabled account** (same gate as a private sphere).
-Playback is in-app (Present mode) only.
+Playback is in-app (Present mode) only. A journey can **span linked spheres**: `LinkSphereAsync` two spheres,
+then give a step a `networkSphereId` so it shows the linked sphere as a neighbour — the tour travels between them.
 
 | Member | Signature | Notes |
 |---|---|---|
 | `CreateTrip` | `string` `(name)` | returns the trip id |
-| `AddTripStep` | `bool` `(tripId, description, arrangementId?, focusGroupId?, focusThortId?, name?, framing?)` | `framing`: `"group"` (default), `"thort"`, `"wide"`/`"overview"`, `"neighbourhood"`. A focus-less overview step aims at the content centroid. |
+| `AddTripStep` | `bool` `(tripId, description, arrangementId?, focusGroupId?, focusThortId?, name?, framing?, networkSphereId?, networkArrangementId?)` | `framing`: `"group"` (default), `"thort"`, `"wide"`/`"overview"`, `"neighbourhood"`. A focus-less overview step aims at the content centroid. Set `networkSphereId` (a sphere linked via `LinkSphereAsync`) to make a **cross-sphere step** that shows the linked sphere as a neighbour — neighbourhood framing is applied automatically. |
 | `ListTrips` / `GetTrip` | `object` | list / fetch one trip's steps |
 | `RenameTrip` / `SetTripPublic` | `bool` | |
 | `EditTripStep` / `DeleteTripStep` / `ReorderTripSteps` | `bool` | edit by 0-based step index |

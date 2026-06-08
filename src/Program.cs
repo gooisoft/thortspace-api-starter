@@ -144,7 +144,40 @@ internal static class Program
             focusGroupId: null, focusThortId: null, name: "The whole picture", framing: "overview");
         Console.WriteLine($"Authored a {((JsonElement)JsonSerializer.SerializeToElement(engine.GetTrip(tripId))).GetProperty("steps").GetArrayLength()}-step journey.");
 
-        // ---- 9. Save to the cloud. ----
+        // ---- 9. A LINKED companion sphere + a CROSS-SPHERE journey step. Thortspace spheres can be LINKED into a
+        //         neighbourhood, and a single journey can SPAN linked spheres. Here we build a small companion sphere
+        //         B (an index of the topic), link A <-> B, then add a final journey step that shows B as the neighbour.
+        var (bCode, bLocalId, bCloudId) = await engine.CreateSphereAsync($"{page.Title} — in brief", isPublic: true);
+        if (bCode == HttpStatusCode.OK)
+        {
+            await engine.OpenSphereAsync(bLocalId);                              // build on the companion sphere
+            // Group 1: a one-line "in brief" from the lead. Group 2: the chapter headings as an index.
+            var briefFirst = engine.AddThort(page.Sections[0].Thorts[0]);
+            var briefGroup = engine.GroupOfThort(briefFirst)!.Value;
+            foreach (var line in page.Sections[0].Thorts.Skip(1).Take(2)) engine.AddThort(line, groupId: briefGroup);
+            engine.RenameGroup(briefGroup, "In brief");
+            var chaptersFirst = engine.AddThort(page.Sections[0].Heading);
+            var chaptersGroup = engine.GroupOfThort(chaptersFirst)!.Value;
+            foreach (var s in page.Sections.Skip(1)) engine.AddThort(s.Heading, groupId: chaptersGroup);
+            engine.RenameGroup(chaptersGroup, "Chapters");
+            engine.Connect(briefGroup, chaptersGroup, "leads-to");
+            engine.Arrange(null, null, null, reduceCrossings: true);
+            var saveB = await engine.SaveAsync();
+            Console.WriteLine($"Built + saved companion sphere (cloudId={bCloudId}): {saveB}.");
+
+            await engine.OpenSphereAsync(localId);                              // back to the main sphere (A)
+            var link = await engine.LinkSphereAsync(bLocalId);                  // bidirectional A <-> B neighbourhood link
+            Console.WriteLine($"Linked the two spheres: {link.code} (linked id {link.otherLocalId}).");
+            // A cross-sphere journey step: shows B in the neighbourhood view (networkSphereId), so the SAME journey
+            // travels from A's content out to its linked companion. Sets neighbourhood framing automatically.
+            engine.AddTripStep(tripId, "And here's the companion sphere — the topic in brief, linked alongside.",
+                arrangementId: null, focusGroupId: null, focusThortId: null, name: "The linked companion",
+                framing: "neighbourhood", networkSphereId: bLocalId);
+            Console.WriteLine("Added a cross-sphere journey step spanning both spheres.");
+        }
+        else Console.WriteLine($"Skipped the linked companion sphere (create returned {bCode}).");
+
+        // ---- 10. Save the main sphere to the cloud (with its now-cross-sphere journey). ----
         var save = await engine.SaveAsync();
         Console.WriteLine($"Save: {save}");
         if (save != HttpStatusCode.OK)
@@ -166,7 +199,7 @@ internal static class Program
         //               SetDefaultCategory, RenameCategorySet, RemoveCategorySet
         //   Path types: RenamePathType, ReorderPathTypes
         //   Arrangements: RenameArrangement, DeleteArrangement, ReorderArrangements
-        //   Sphere:    RenameSphere, SetSpherePublic, ListSpheres, Snapshot
+        //   Sphere:    RenameSphere, SetSpherePublic, ListSpheres, Snapshot, LinkSphereAsync (cross-sphere link — shown above)
         //   Journeys:  RenameTrip, SetTripPublic, EditTripStep, DeleteTripStep, ReorderTripSteps, DeleteTrip
         //   (In-app only — these need the running desktop app, not the headless engine: NavigateTo, SetWorkingMode, PlayTrip.)
         return 0;
