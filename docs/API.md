@@ -38,6 +38,27 @@ One engine owns a single background work pump; all calls are marshalled onto it 
 `cacheDir` per concurrent instance** (each is a separate identity / collaboration participant). There is no
 `Dispose` — the pump is a background thread, so the process can simply exit.
 
+## Requirements, versions & account tiers
+
+**Minimum Thortspace version: 1.6.718.** `Thortspace.Headless.dll` first shipped in **1.6.717**, but the full
+surface documented here — the complete `IAgentEngine`, journeys, cross-sphere linking and the topology-aware
+layout tools — was finalised in **1.6.718**. Reference a **1.6.718-or-later** install. APIs added in later
+releases will carry an explicit `Since:` note; unless stated otherwise everything here is **`Since: 1.6.718`**,
+with no upper bound (works on current releases).
+
+**Account tiers.** Almost the entire API works on a **free** account — creating a **public** sphere and *all*
+content building: thorts, groups, typed paths, categories, arrangements, layout, and *authoring* journeys. Only
+two things need a **sync-enabled** account (marked **⭐** below — that's Premium / Subscriber / Trial / a member
+of a paid organisation):
+
+- **⭐ Saving a _private_ sphere** — `SaveAsync` after `SetSpherePublic(false)`, or a sphere created private. On a
+  free account a private sphere is frozen and `SaveAsync` returns `400`. (A **public** sphere saves on any tier.)
+- **⭐ Persisting a journey** — `CreateTrip` / `AddTripStep` *author* fine on any account, but the trip only
+  *saves* to the cloud on a sync-enabled account (same gate as a private sphere).
+
+Everything not marked ⭐ is **free**. Status codes you'll see: `OK` success · `Unauthorized` bad login ·
+`400` save rejected (frozen private sphere on a free account) · `403` sphere-count limit reached.
+
 ## The surface — `IAgentEngine`
 
 `HeadlessEngine` implements `IAgentEngine`. Methods that hit the cloud are `async`; structural edits are
@@ -53,7 +74,7 @@ synchronous (marshalled + applied on the engine pump, laid out as they apply).
 | `CreateSphereAsync` | `Task<(HttpStatusCode code, string localId, long cloudId)>` `(name, isPublic)` | creates only — **does not open**; call `OpenSphereAsync(localId)` next |
 | `OpenSphereAsync` | `Task<(HttpStatusCode code, string sphereId)>` `(sphereIdOrCloud)` | local id **or** numeric cloud id; becomes the editable session |
 | `NewLocalSphere` | `void` `()` | in-memory sphere, no cloud (handy for testing) |
-| `SaveAsync` | `Task<HttpStatusCode>` `()` | cloud session only; `400` = sphere frozen (see below) |
+| `SaveAsync` | `Task<HttpStatusCode>` `()` | cloud session only; **⭐ for a _private_ sphere** (a public sphere saves on any tier); `400` = sphere frozen (see below) |
 | `HostSession` | `bool` `()` | host/join the realtime collaboration session for the open sphere |
 | `IsLoggedIn` / `HasSession` / `SessionIsCloud` / `CurrentSphereId` | properties | state |
 | `SphereChanged` | `event Action<object>` | coalesced change signal (incl. a collaborator's edits) — carries a fresh snapshot |
@@ -81,7 +102,7 @@ synchronous (marshalled + applied on the engine pump, laid out as they apply).
 | `RenamePathType` / `RecolourPathType` / `ReorderPathTypes` | `bool` | relationship types; full colours belong on paths |
 | `CreateArrangement` | `Guid` `(name)` | copy the current layout into a new, independently-rearrangeable view (non-destructive reframe) |
 | `SwitchArrangement` / `RenameArrangement` / `DeleteArrangement` / `ReorderArrangements` | `bool` | which arrangement edits/snapshots target; manage the set (keeps ≥1) |
-| `RenameSphere` / `SetSpherePublic` | `bool` | the open sphere's title / publish state |
+| `RenameSphere` / `SetSpherePublic` | `bool` | the open sphere's title / publish state. **⭐ a _private_ sphere needs a sync-enabled account to save** |
 | `LinkSphereAsync` | `Task<(HttpStatusCode code, string otherLocalId, long otherCloudId)>` `(otherSphereIdOrCloud, nearGroupId?)` | link the open sphere to ANOTHER (bidirectional neighbourhood link, same as the app's "Add Link to Sphere"); loads the other sphere if needed. Both spheres must be on your account. Returns the linked sphere's ids — pass `otherLocalId` to `AddTripStep`'s `networkSphereId` so one journey **spans both spheres**. |
 | `Relayout` | `void` `()` | auto-movement: coagulates thorts within groups **and** spreads groups apart |
 | `Coagulate` | `void` `()` | tidy each group into a hex lattice **without** spreading groups apart |
@@ -89,7 +110,7 @@ synchronous (marshalled + applied on the engine pump, laid out as they apply).
 | `Arrange` | `object` `(scope?, style?, spacing?, reduceCrossings)` | topology-aware layout: clusters related groups + **reduces path crossings** (chain→arc, star→spokes, tree→layered, cycle→ring). `scope` null = whole arrangement; `spacing` `"spread"`/`"cluster"`. |
 | `Snapshot` | `object` `()` | current state of the open sphere (shape below) |
 
-### Journeys (guided "trips")
+### Journeys (guided "trips") &nbsp; ⭐ *authoring is free; persisting needs a sync-enabled account*
 
 A journey is an ordered sequence of view-steps; each step records an arrangement, a focus node and a narration.
 The camera is **derived from the focus at playback**, so authoring just sets focus + framing. Authoring works

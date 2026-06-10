@@ -1,5 +1,7 @@
 # Thortspace API — Starter
 
+[![Thortspace — a spatial thinking tool](docs/images/thortspace-header.jpg)](https://thort.space)
+
 A tiny C# starter for driving [Thortspace](https://thort.space) programmatically. It references the Thortspace
 engine DLL — **`Thortspace.Headless.dll`** — directly and runs the engine **in your own process**, so a program
 can build and edit a sphere (add thorts, group them, connect them with typed relationships, re-colour, re-arrange,
@@ -22,11 +24,22 @@ This repo is two things:
 > the engine (this starter), **or** point an MCP-capable AI at the bundled **standalone MCP server** and just
 > *talk* to it — no code. See [*The standalone MCP server*](#the-standalone-mcp-server-no-code) below.
 
+## What you can build
+
+Each of these is a Thortspace sphere — groups of thorts, typed relationships, colour categories and a guided
+journey — the same kind of structure this starter builds automatically from a topic:
+
+| | | |
+|:---:|:---:|:---:|
+| [![Crypto trading bots](docs/images/sphere-crypto-trading-bots.png)](docs/images/sphere-crypto-trading-bots.png) | [![Investigation of problem theory](docs/images/sphere-investigation-of-problem-theory.png)](docs/images/sphere-investigation-of-problem-theory.png) | [![SWOT analysis of humanity](docs/images/sphere-swot-analysis-of-humanity.png)](docs/images/sphere-swot-analysis-of-humanity.png) |
+| **Crypto trading bots** | **Investigation of problem theory** | **SWOT analysis of humanity** |
+
 ## What you need
 
 - **Windows** and the **.NET 8 SDK** — https://dotnet.microsoft.com/download
-- **An installed Thortspace** — it ships the SDK DLLs (`Thortspace.Headless.dll` + dependencies). If you
-  installed it normally there's **nothing to configure**: the starter finds them automatically at
+- **An installed Thortspace — version 1.6.718 or later** (the first release with the full documented API; the
+  DLL debuted in 1.6.717). It ships the SDK DLLs (`Thortspace.Headless.dll` + dependencies). If you installed it
+  normally there's **nothing to configure**: the starter finds them automatically at
   `%LOCALAPPDATA%\ThortspaceX64\current`.
 - **A Thortspace account** — the sphere is created in whichever account you log in as.
 
