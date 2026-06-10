@@ -37,10 +37,11 @@ journey — the same kind of structure this starter builds automatically from a 
 ## What you need
 
 - **Windows** and the **.NET 8 SDK** — https://dotnet.microsoft.com/download
-- **An installed Thortspace — version 1.6.718 or later** (the first release with the full documented API; the
-  DLL debuted in 1.6.717). It ships the SDK DLLs (`Thortspace.Headless.dll` + dependencies). If you installed it
-  normally there's **nothing to configure**: the starter finds them automatically at
-  `%LOCALAPPDATA%\ThortspaceX64\current`.
+- **An installed Thortspace — [download it here](https://www.thortspace.com/main/get-thortspace-app/)** —
+  version 1.6.718 or later (the first release with the full documented API; the DLL debuted in 1.6.717). This
+  starter needs the **Windows desktop** build (it ships the SDK DLLs — `Thortspace.Headless.dll` + dependencies);
+  that same downloads page also has the macOS, iOS and Android apps. If you installed it normally there's
+  **nothing to configure**: the starter finds the DLLs automatically at `%LOCALAPPDATA%\ThortspaceX64\current`.
 - **A Thortspace account** — the sphere is created in whichever account you log in as.
 
 ## Set up
