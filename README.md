@@ -163,6 +163,9 @@ Alongside this code path, Thortspace ships a **standalone MCP server** — `Thor
 self-describing MCP tools. It's the no-code way to do the same headless production: an MCP-capable AI
 (Claude Code, Gemini CLI, Claude Cowork, …) launches it over stdio and drives Thortspace by calling tools.
 
+> **Full MCP guide → [docs/MCP.md](docs/MCP.md)** — both MCP hosts (standalone stdio + in-app HTTP), the
+> complete **tool reference** (all 55 tools), and a "what to say" demo recipe for each.
+
 Register it with your AI client (example for Claude Code):
 
 ```powershell
