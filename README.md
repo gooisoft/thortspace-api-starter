@@ -13,7 +13,9 @@ This repo is two things:
 1. **A runnable example** (`src/`) — takes a **topic** (a `Topic` constant you edit), fetches a reference page
    (Wikipedia by default), and builds a whole sphere from it: groups of thorts in hex lattices, typed
    relationships, a pastel colour scheme, **two arrangements**, and a guided **journey** — then builds a **linked
-   companion sphere** and extends the journey to **span both spheres**, and saves. It exercises most of the engine surface.
+   companion sphere** and extends the journey to **span both spheres**. Finally it **searches the public library**
+   and **embeds other authors' public spheres** on the topic into a fresh hub, connecting them with pathsteps into a
+   navigable **meta-analysis** (`SearchSpheresAsync` + `EmbedSphereAsync`). It exercises most of the engine surface.
 2. **The reference** — the [API reference](docs/API.md) for the engine surface (`IAgentEngine`).
 
 > The Thortspace, Thortcloud and web-client source repositories are private; this starter + docs are the public

@@ -195,6 +195,40 @@ internal static class Program
             return 5;
         }
 
+        // ---- 11. Compose a meta-analysis from OTHER PEOPLE'S public spheres (the insight-graph move). ----
+        // Search the shared/public library, EMBED the results into a fresh hub sphere (a one-way reference — works
+        // for public spheres you don't own), and CONNECT them with pathsteps. In Thortspace, two embedded spheres
+        // joined by a pathstep form a navigable "virtual network" — so this builds a meta-analysis across other
+        // authors' insight. (search_spheres scope: "mine" = own + shared-with-you, "public", or "all".)
+        Console.WriteLine();
+        Console.WriteLine("Composing a meta-analysis from public spheres on this topic...");
+        using (var sdoc = JsonDocument.Parse(JsonSerializer.Serialize(await engine.SearchSpheresAsync(page.Title, "public", 6))))
+        {
+            var results = sdoc.RootElement.GetProperty("results");
+            if (results.GetArrayLength() >= 2)
+            {
+                var (hubCode, hubLocal, hubCloud) = await engine.CreateSphereAsync($"{page.Title} — a meta-analysis (public spheres)", isPublic: true);
+                if (hubCode == HttpStatusCode.OK)
+                {
+                    await engine.OpenSphereAsync(hubLocal);
+                    var portals = new List<string>();
+                    foreach (var r in results.EnumerateArray())
+                    {
+                        var cid = r.GetProperty("cloudId").GetString();
+                        var title = r.TryGetProperty("title", out var t) ? t.GetString() : cid;
+                        var (embedCode, portal) = await engine.EmbedSphereAsync(cid!);   // one-way embed of a public sphere
+                        if (embedCode == HttpStatusCode.OK && portal != null) { portals.Add(portal); Console.WriteLine($"  embedded '{title}' ({cid})"); }
+                    }
+                    for (int i = 0; i + 1 < portals.Count; i++)                            // chain them with pathsteps -> virtual network
+                        engine.Connect(Guid.Parse(portals[i]), Guid.Parse(portals[i + 1]), "relates-to");
+                    var hubSave = await engine.SaveAsync();
+                    Console.WriteLine($"  meta-analysis hub {hubCloud} saved: {hubSave} — {portals.Count} embedded spheres, {Math.Max(0, portals.Count - 1)} pathsteps.");
+                    await engine.OpenSphereAsync(localId);                                 // back to the main sphere
+                }
+            }
+            else Console.WriteLine("  (public search returned fewer than 2 spheres; skipping the meta-analysis demo).");
+        }
+
         Console.WriteLine();
         Console.WriteLine($"Done. Open Thortspace (or thort.space) on this account to see sphere {cloudId}.");
         Console.WriteLine("In Present mode you can PLAY the journey. NOTE: saving/playing your own journeys needs a");
@@ -207,7 +241,8 @@ internal static class Program
         //               SetDefaultCategory, RenameCategorySet, RemoveCategorySet
         //   Path types: RenamePathType, ReorderPathTypes
         //   Arrangements: RenameArrangement, DeleteArrangement, ReorderArrangements
-        //   Sphere:    RenameSphere, SetSpherePublic, ListSpheres, Snapshot, LinkSphereAsync (cross-sphere link — shown above)
+        //   Sphere:    RenameSphere, SetSpherePublic, ListSpheres, Snapshot, LinkSphereAsync (two-way link — shown above),
+        //              SearchSpheresAsync (own/shared/public — shown above), EmbedSphereAsync (one-way embed — shown above)
         //   Journeys:  RenameTrip, SetTripPublic, EditTripStep, DeleteTripStep, ReorderTripSteps, DeleteTrip
         //   (In-app only — these need the running desktop app, not the headless engine: NavigateTo, SetWorkingMode, PlayTrip.)
         return 0;
