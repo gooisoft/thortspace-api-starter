@@ -40,11 +40,10 @@ One engine owns a single background work pump; all calls are marshalled onto it 
 
 ## Requirements, versions & account tiers
 
-**Minimum Thortspace version: 1.6.718.** `Thortspace.Headless.dll` first shipped in **1.6.717**, but the full
-surface documented here — the complete `IAgentEngine`, journeys, cross-sphere linking and the topology-aware
-layout tools — was finalised in **1.6.718**. Reference a **1.6.718-or-later** install. APIs added in later
-releases will carry an explicit `Since:` note; unless stated otherwise everything here is **`Since: 1.6.718`**,
-with no upper bound (works on current releases).
+**Minimum Thortspace version: 1.6.721.** `Thortspace.Headless.dll` first shipped in **1.6.717**, and most of the
+surface here was finalised in **1.6.718** — but the full surface documented on this page (including
+`SearchSpheresAsync`, `EmbedSphereAsync`, the journeys section in `Snapshot()`, `raisedThort` in `GetTrip`, and
+the edit-batching brackets) needs **1.6.721 or later**. Reference a current install; there is no upper bound.
 
 **Account tiers.** Almost the entire API works on a **free** account — creating a **public** sphere and *all*
 content building: thorts, groups, typed paths, categories, arrangements, layout, and *authoring* journeys. Only
@@ -71,6 +70,7 @@ synchronous (marshalled + applied on the engine pump, laid out as they apply).
 | `LoginAsync` | `Task<HttpStatusCode>` `(email, password)` | `OK` on success; sphere list syncs shortly after |
 | `RegisterAsync` | `Task<HttpStatusCode>` `(email, password)` | |
 | `ListSpheres` | `List<string>` `()` | cloud ids of synced spheres |
+| `SearchSpheresAsync` | `Task<object>` `(query, scope, limit)` | search ALL spheres the account can access: `"mine"` (own + shared-with-me), `"public"` (the public library), `"all"`. Returns `{ count, results[] }`; rows carry `sphereId`, `cloudId`, title, owner and `ownedByMe`/`sharedWithMe`/`public`/`paywalled`/`canCopy`/`canEdit` flags |
 | `CreateSphereAsync` | `Task<(HttpStatusCode code, string localId, long cloudId)>` `(name, isPublic)` | creates only — **does not open**; call `OpenSphereAsync(localId)` next |
 | `OpenSphereAsync` | `Task<(HttpStatusCode code, string sphereId)>` `(sphereIdOrCloud)` | local id **or** numeric cloud id; becomes the editable session |
 | `NewLocalSphere` | `void` `()` | in-memory sphere, no cloud (handy for testing) |
@@ -104,6 +104,8 @@ synchronous (marshalled + applied on the engine pump, laid out as they apply).
 | `SwitchArrangement` / `RenameArrangement` / `DeleteArrangement` / `ReorderArrangements` | `bool` | which arrangement edits/snapshots target; manage the set (keeps ≥1) |
 | `RenameSphere` / `SetSpherePublic` | `bool` | the open sphere's title / publish state. **⭐ a _private_ sphere needs a sync-enabled account to save** |
 | `LinkSphereAsync` | `Task<(HttpStatusCode code, string otherLocalId, long otherCloudId)>` `(otherSphereIdOrCloud, nearGroupId?)` | link the open sphere to ANOTHER (bidirectional neighbourhood link, same as the app's "Add Link to Sphere"); loads the other sphere if needed. Both spheres must be on your account. Returns the linked sphere's ids — pass `otherLocalId` to `AddTripStep`'s `networkSphereId` so one journey **spans both spheres**. |
+| `EmbedSphereAsync` | `Task<(HttpStatusCode code, string portalThortId)>` `(otherSphereIdOrCloud, nearGroupId?)` | ONE-WAY embed of ANY accessible sphere — **including a public sphere by another author** — as a portal thort on the open sphere (the app's "drag a sphere onto your sphere"). Connect two portals with a pathstep to build a meta-analysis hub. |
+| `BeginEditBatch` / `EndEditBatch` | `void` `()` | bracket a burst of edits so they commit as ONE transaction instead of one per call (call `EndEditBatch` in a `finally`). Idempotent / nestable; a no-op where batching doesn't apply. Use around multi-op turns for snappier application. |
 | `Relayout` | `void` `()` | auto-movement: coagulates thorts within groups **and** spreads groups apart |
 | `Coagulate` | `void` `()` | tidy each group into a hex lattice **without** spreading groups apart |
 | `ArrangeGroup` | `bool` `(groupId, formation)` | re-lay a group's thorts: `"hex"` (default), `"line"`, `"ring"`, `"square"`, `"freeform"` |
@@ -122,10 +124,15 @@ then give a step a `networkSphereId` so it shows the linked sphere as a neighbou
 |---|---|---|
 | `CreateTrip` | `string` `(name)` | returns the trip id |
 | `AddTripStep` | `bool` `(tripId, description, arrangementId?, focusGroupId?, focusThortId?, name?, framing?, networkSphereId?, networkArrangementId?)` | `framing`: `"group"` (default), `"thort"`, `"wide"`/`"overview"`, `"neighbourhood"`. A focus-less overview step aims at the content centroid. Set `networkSphereId` (a sphere linked via `LinkSphereAsync`) to make a **cross-sphere step** that shows the linked sphere as a neighbour — neighbourhood framing is applied automatically. |
-| `ListTrips` / `GetTrip` | `object` | list / fetch one trip's steps |
+| `ListTrips` / `GetTrip` | `object` | list / fetch one trip's steps — each step reports its narration, arrangement, focus (`raisedThort` for thort-framed steps) and framing |
 | `RenameTrip` / `SetTripPublic` | `bool` | |
 | `EditTripStep` / `DeleteTripStep` / `ReorderTripSteps` | `bool` | edit by 0-based step index |
 | `DeleteTrip` | `bool` `(tripId)` | |
+| `PlayTrip` | `bool` `(tripId)` | **in-app only** — start Present-mode playback in the running app; inert on `HeadlessEngine` |
+
+`Snapshot()` also carries a `journeys` section — the account's journeys with steps on the open sphere
+(id, name, isPublic, ordered step names + truncated descriptions) — so a program (or AI) can see at a
+glance what tours already exist before authoring another.
 
 ### `Snapshot()` shape
 
@@ -140,12 +147,29 @@ then give a step a `networkSphereId` so it shows the linked sphere as a neighbou
   "paths":   [ { "from": "<guid>", "to": "<guid>", "relationship": "responds-to" } ],
   "pathTypes":   [ { "id": "<guid>", "name": "...", "color": {"r":..,"g":..,"b":..} } ],
   "categorySet": { "id": "<guid>", "name": "...", "categories": [ { "id": "<guid>", "name": "...", "color": {"r":..,"g":..,"b":..} } ] },
-  "categorySets": [ { "id": "<guid>", "name": "Colours" } ]
+  "categorySets": [ { "id": "<guid>", "name": "Colours" } ],
+  "journeys": [ { "id": "...", "name": "...", "isPublic": false, "steps": [ { "name": "...", "description": "..." } ] } ]
 }
 ```
 
 `location` is the group's position on the sphere (radius ~140). Use group `location` + thort `groupId` to reason
 about *what is near what* when placing new content.
+
+### In-app-only members
+
+`IAgentEngine` also carries members that only do something when the engine is the **running desktop app's**
+adapter (the in-app MCP host) — they drive the live camera/UI or the app's built-in AI collaborator. On
+`HeadlessEngine` they are inert (they return `false` / report unsupported), so a headless program can ignore
+them:
+
+| Member | What it does (in the running app) |
+|---|---|
+| `NavigateTo(nodeId)` / `SetWorkingMode(mode)` | camera focus on a node / switch think·do·explore·present·archive |
+| `PlayTrip(tripId)` | Present-mode journey playback |
+| `ShowGuidanceCallout` / `ShowCustomCallout` / `ClearGuidanceCallout` | push/clear a self-teaching callout pointing at a thort or group |
+| `SendChatMessage(text)` / `TellAi(text)` | AI → user chat delivery / user → built-in-AI message injection |
+| `PresentGate` / `GuidanceState` / `SetAiPosture` / `AiPosture` / `SetAiThinking` | the onboarding-AI's learning-gate and posture controls |
+| `IsUserInteracting` / `IsGuidanceGateActive` | live-app interaction state (always `false` headless) |
 
 ## Notes that bite
 

@@ -40,7 +40,8 @@ journey — the same kind of structure this starter builds automatically from a 
 
 - **Windows** and the **.NET 8 SDK** — https://dotnet.microsoft.com/download
 - **An installed Thortspace — [download it here](https://www.thortspace.com/main/get-thortspace-app/)** —
-  version 1.6.718 or later (the first release with the full documented API; the DLL debuted in 1.6.717). This
+  version 1.6.721 or later (the current API baseline — public-library search/embed, journey focus read-back
+  and edit batching; the DLL debuted in 1.6.717). This
   starter needs the **Windows desktop** build (it ships the SDK DLLs — `Thortspace.Headless.dll` + dependencies);
   that same downloads page also has the macOS, iOS and Android apps. If you installed it normally there's
   **nothing to configure**: the starter finds the DLLs automatically at `%LOCALAPPDATA%\ThortspaceX64\current`.
@@ -167,7 +168,7 @@ self-describing MCP tools. It's the no-code way to do the same headless producti
 (Claude Code, Gemini CLI, Claude Cowork, …) launches it over stdio and drives Thortspace by calling tools.
 
 > **Full MCP guide → [docs/MCP.md](docs/MCP.md)** — both MCP hosts (standalone stdio + in-app HTTP), the
-> complete **tool reference** (all 55 tools), and a "what to say" demo recipe for each.
+> complete **tool reference** (all 60 tools), and a "what to say" demo recipe for each.
 
 Register it with your AI client (example for Claude Code):
 

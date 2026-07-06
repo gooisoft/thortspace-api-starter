@@ -16,8 +16,8 @@ way whichever host you use.
 | **Standalone** `Thortspace.Mcp.exe` | a **headless** engine in its own process — builds & saves spheres with no GUI | **stdio** | unattended production; let an AI build spheres into your account |
 | **In-app** (the running desktop app) | the sphere you have **open**, live — you watch edits land in real time | **loopback HTTP** | co-creating live; teaching/demoing; editing an open sphere |
 
-Both are part of an installed Thortspace (**version 1.6.718 or later** — the DLL debuted in 1.6.717).
-There's nothing to build.
+Both are part of an installed Thortspace (**version 1.6.721 or later** for the full tool set below —
+the DLL debuted in 1.6.717). There's nothing to build.
 
 > **One conceptual model for everything below.** A *sphere* holds *thorts* (short ideas) gathered into
 > *groups* on its surface, joined by typed *paths* (relationships). *Categories* are a cross-cutting
@@ -109,10 +109,10 @@ the steps; just name the task and a well-behaved client will pull the recipe.
 
 ## Tool reference
 
-55 tools, all on the shared `ThortspaceTools` layer (identical in both hosts). The AI reads these
-descriptions from `tools/list` at connect time — this table is the human-readable mirror. Tools marked
-**(in-app)** only do something in the in-app HTTP host (they move the live camera/UI); on the standalone
-host they are inert.
+60 tools (plus one internal dev hook), all on the shared `ThortspaceTools` layer (identical in both
+hosts). The AI reads these descriptions from `tools/list` at connect time — this table is the
+human-readable mirror. Tools marked **(in-app)** only do something in the in-app HTTP host (they move the
+live camera/UI, or talk to the app's built-in AI); on the standalone host they are inert.
 
 > **The golden rule the AI follows:** call `snapshot` first, then use **only** the ids it returns when
 > targeting a thort / group / category / arrangement.
@@ -122,8 +122,9 @@ host they are inert.
 |---|---|
 | `ping` | Check the connection is alive (returns *pong*). |
 | `cookbook` | Return step-by-step recipes for common multi-step tasks. |
-| `snapshot` | The current sphere as JSON: thorts, groups, paths, arrangements, the category set, and the arrangement `radius`. **Call first.** |
+| `snapshot` | The current sphere as JSON: thorts, groups, paths, arrangements, the category set, the sphere's **journeys** (id, name, steps), and the arrangement `radius`. **Call first.** |
 | `list_spheres` | List the account's spheres (their ids). |
+| `search_spheres(query, scope="all", limit=25)` | Search ALL spheres the account can access: own + shared (`mine`), the public library (`public`), or both (`all`). Rows carry `sphereId`, `cloudId`, title, owner, and `ownedByMe`/`sharedWithMe`/`public`/`paywalled`/`canCopy`/`canEdit` flags. |
 
 ### Spheres
 | Tool | What it does |
@@ -133,6 +134,7 @@ host they are inert.
 | `rename_sphere(name)` | Rename the current sphere (no `/`). |
 | `set_sphere_public(isPublic)` | Publish/unpublish; publishing also enables saving for a free account. |
 | `link_sphere(sphereId, nearGroupId?)` | Bidirectional **neighbourhood link** to another sphere (build a connected *set*; a journey can span both). |
+| `embed_sphere(sphereId, nearGroupId?)` | One-way **embed** of ANY accessible sphere — including a **public sphere by another author** — as a portal thort on the current sphere; connect portals with pathsteps to build a meta-analysis hub. |
 | `save()` | Save the current sphere to the cloud. |
 
 ### Thorts
@@ -201,7 +203,7 @@ host they are inert.
 | `create_trip(name)` | Create a guided journey; returns its id. |
 | `add_trip_step(tripId, description, arrangementId?, focusGroupId?, focusThortId?, name?, framing?, networkSphereId?, networkArrangementId?)` | Add a viewpoint: one arrangement + a focus + narration; `framing` sets zoom; `networkSphereId` makes it span a linked sphere. |
 | `list_trips()` | List journeys (id, name, step count). |
-| `get_trip(tripId)` | A journey's steps in order. |
+| `get_trip(tripId)` | A journey's steps in order — each with its narration, arrangement, focus (`raisedThort` for thort-framed steps), and framing. |
 | `delete_trip(tripId)` | Delete a journey. |
 | `play_trip(tripId)` **(in-app)** | Play the journey in Present mode. |
 | `rename_trip(tripId, name)` | Rename a journey. |
@@ -215,6 +217,16 @@ host they are inert.
 |---|---|
 | `navigate_to(nodeId)` | Bring a thort/group front-and-centre in the live app. |
 | `set_working_mode(mode)` | Switch mode: think / do / explore / present / archive / none. |
+
+### Guidance & the built-in AI **(in-app only)**
+| Tool | What it does |
+|---|---|
+| `point_at_thort(thortId, text, title?)` | Show a guidance callout in the live app pointing at a thort (the app's self-teaching overlay). |
+| `clear_callout()` | Clear any AI-pushed callout. |
+| `tell_ai(text)` | Deliver a message to the app's **built-in AI collaborator** (the Chat/AI tab), exactly as if typed in its chat box — lets an external AI converse with the in-app one. Requires the AI collaborator to be enabled in the app. |
+
+> There is also an internal `onboarding_test` tool — a dev/test hook for Thortspace's own onboarding
+> regression loop. It is inert unless the app is launched in a special development mode; ignore it.
 
 ---
 
