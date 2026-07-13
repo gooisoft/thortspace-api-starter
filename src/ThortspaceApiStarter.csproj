@@ -18,7 +18,7 @@
   <ItemGroup>
     <!-- The Thortspace headless SDK — the engine DLL + its dependency closure, restored from nuget.org
          like any other package. This IS the API; no installed Thortspace app is needed. -->
-    <PackageReference Include="Thortspace.Headless" Version="1.6.726" />
+    <PackageReference Include="Thortspace.Headless" Version="1.6.726.1" />
   </ItemGroup>
 
 </Project>
