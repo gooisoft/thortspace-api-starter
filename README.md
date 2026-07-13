@@ -18,6 +18,12 @@ This repo is two things:
    navigable **meta-analysis** (`SearchSpheresAsync` + `EmbedSphereAsync`). It exercises most of the engine surface.
 2. **The reference** — the [API reference](docs/API.md) for the engine surface (`IAgentEngine`).
 
+> **Want a bigger example?** [**thortspace-knowledge-network**](https://github.com/gooisoft/thortspace-knowledge-network)
+> builds on this starter: it turns a whole Wikipedia topic cluster into a **network of interlinked spheres**
+> with cross-network **journeys** — an LLM (a cloud API key, a local CLI agent, or a local model server)
+> distils each page; deterministic code builds and links them. This starter is the "hello world"; that's the
+> substantial, real-pipeline example. Start here, go there next.
+
 > The Thortspace, Thortcloud and web-client source repositories are private; this starter + docs are the public
 > entry point to the API. The NuGet package ships the **obfuscated** engine assemblies (compiled against clean
 > reference assemblies — standard NuGet `ref`/`lib` behaviour) — the engine source is never exposed.
