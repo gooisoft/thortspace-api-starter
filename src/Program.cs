@@ -1,22 +1,19 @@
 using System.Net;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Thortspace.Headless;
 
 namespace ThortspaceApiStarter;
 
-// Thortspace API starter — drives Thortspace directly by referencing Thortspace.Headless.dll (the in-process
-// command API) and running the engine IN your own process. No socket, no server: you call the engine's methods
-// and it creates/edits/saves spheres in the cloud account you log in as.
+// Thortspace API starter — drives Thortspace via the Thortspace.Headless NuGet package (the in-process
+// command API): the engine runs IN your own process. No socket, no server, no installed app needed —
+// you call the engine's methods and it creates/edits/saves spheres in the cloud account you log in as.
 //
 // What it does: takes a TOPIC (edit the constant below), fetches a reference page (Wikipedia by default),
 // and builds a sphere out of it — groups of thorts, typed relationships, a colour scheme, TWO arrangements,
 // and a guided JOURNEY — demonstrating (almost) the whole engine surface. Then saves it to the cloud.
 //
-//   Requirements:  Windows, .NET 8 SDK, and an installed Thortspace that provides the SDK DLLs (see README).
+//   Requirements:  Windows, .NET 8 SDK (or newer)
 //   Set:           THORTSPACE_EMAIL, THORTSPACE_PASSWORD   (the account the sphere is created in)
-//   Optional:      THORTSPACE_SDK_DIR                      (folder with Thortspace.Headless.dll + dependencies)
 //   Run:           dotnet run --project src
 internal static class Program
 {
@@ -29,22 +26,6 @@ internal static class Program
     private static readonly IContentSource Source = new WikipediaContentSource();
     // ===================================================
 
-    private static readonly string SdkDir = ResolveSdkDir();
-
-    // Mirror the csproj's probing: THORTSPACE_SDK_DIR wins, then the standard x64/ARM64 install locations.
-    private static string ResolveSdkDir()
-    {
-        var env = Environment.GetEnvironmentVariable("THORTSPACE_SDK_DIR");
-        if (!string.IsNullOrEmpty(env)) return env;
-        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        foreach (var install in new[] { "ThortspaceX64", "ThortspaceARM64" })
-        {
-            var dir = Path.Combine(local, install, "current");
-            if (File.Exists(Path.Combine(dir, "Thortspace.Headless.dll"))) return dir;
-        }
-        return Path.Combine(local, "ThortspaceX64", "current");   // best-effort default for the error message
-    }
-
     private static async Task<int> Main()
     {
         // Opt-in diagnostics: the engine logs failure detail (login errors, exceptions) via System.Diagnostics.Trace,
@@ -53,29 +34,12 @@ internal static class Program
         if (Environment.GetEnvironmentVariable("THORTSPACE_DEBUG") == "1")
             System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.TextWriterTraceListener(Console.Error));
 
-        // Resolve Thortspace.Headless.dll + its dependency DLLs from the SDK folder at runtime (registered BEFORE
-        // any Thortspace type is touched — the engine work is in Run(), never inlined).
-        AppDomain.CurrentDomain.AssemblyResolve += (_, e) =>
-        {
-            var dll = Path.Combine(SdkDir, new AssemblyName(e.Name).Name + ".dll");
-            return File.Exists(dll) ? Assembly.LoadFrom(dll) : null;
-        };
-
         try { return await Run(); }
-        catch (FileNotFoundException ex)
-        {
-            Console.Error.WriteLine("Could not load the Thortspace SDK: " + ex.Message);
-            Console.Error.WriteLine($"Set THORTSPACE_SDK_DIR to the folder containing Thortspace.Headless.dll (looked in: {SdkDir}).");
-            return 1;
-        }
         catch (Exception ex) { Console.Error.WriteLine("ERROR: " + ex); return 1; }
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task<int> Run()
     {
-        Console.WriteLine($"Thortspace SDK: {SdkDir}");
-
         var (email, password) = ResolveCredentials();
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {

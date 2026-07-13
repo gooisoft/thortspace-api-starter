@@ -2,11 +2,11 @@
 
 [![Thortspace — a spatial thinking tool](docs/images/thortspace-header.jpg)](https://thort.space)
 
-A tiny C# starter for driving [Thortspace](https://thort.space) programmatically. It references the Thortspace
-engine DLL — **`Thortspace.Headless.dll`** — directly and runs the engine **in your own process**, so a program
-can build and edit a sphere (add thorts, group them, connect them with typed relationships, re-colour, re-arrange,
-lay it out) and save it to the cloud. There is **no socket, server, or network layer** between your code and the
-engine — you call its methods directly.
+A tiny C# starter for driving [Thortspace](https://thort.space) programmatically. It uses the
+[**`Thortspace.Headless`** NuGet package](https://www.nuget.org/packages/Thortspace.Headless) — the Thortspace
+engine running **in your own process** — so a program can build and edit a sphere (add thorts, group them,
+connect them with typed relationships, re-colour, re-arrange, lay it out) and save it to the cloud. There is
+**no socket, server, or network layer** between your code and the engine — you call its methods directly.
 
 This repo is two things:
 
@@ -19,10 +19,10 @@ This repo is two things:
 2. **The reference** — the [API reference](docs/API.md) for the engine surface (`IAgentEngine`).
 
 > The Thortspace, Thortcloud and web-client source repositories are private; this starter + docs are the public
-> entry point to the API. You reference the **shipped, obfuscated** `Thortspace.Headless.dll` from an installed
-> Thortspace — the engine source is never exposed.
+> entry point to the API. The NuGet package ships the **obfuscated** engine assemblies (compiled against clean
+> reference assemblies — standard NuGet `ref`/`lib` behaviour) — the engine source is never exposed.
 >
-> **Two ways to automate Thortspace headlessly, both on this same `Thortspace.Headless.dll`:** write code against
+> **Two ways to automate Thortspace headlessly, both on this same `Thortspace.Headless` engine:** write code against
 > the engine (this starter), **or** point an MCP-capable AI at the bundled **standalone MCP server** and just
 > *talk* to it — no code. See [*The standalone MCP server*](#the-standalone-mcp-server-no-code) below.
 
@@ -38,20 +38,15 @@ journey — the same kind of structure this starter builds automatically from a 
 
 ## What you need
 
-- **Windows** and the **.NET 8 SDK** — https://dotnet.microsoft.com/download
-- **An installed Thortspace — [download it here](https://www.thortspace.com/main/get-thortspace-app/)** —
-  version 1.6.721 or later (the current API baseline — public-library search/embed, journey focus read-back
-  and edit batching; the DLL debuted in 1.6.717). This
-  starter needs the **Windows desktop** build (it ships the SDK DLLs — `Thortspace.Headless.dll` + dependencies);
-  that same downloads page also has the macOS, iOS and Android apps. If you installed it normally there's
-  **nothing to configure**: the starter finds the DLLs automatically at `%LOCALAPPDATA%\ThortspaceX64\current`.
-- **A Thortspace account** — the sphere is created in whichever account you log in as.
+- **Windows** and the **.NET 8 SDK** (or newer) — https://dotnet.microsoft.com/download
+- **A Thortspace account** — the sphere is created in whichever account you log in as. You do NOT need the
+  Thortspace app installed: the [`Thortspace.Headless` NuGet package](https://www.nuget.org/packages/Thortspace.Headless)
+  restores automatically and carries the whole engine. (The [app](https://www.thortspace.com/main/get-thortspace-app/)
+  is how you'll *look at* what your code builds, though — so you'll want it anyway.)
 
 ## Set up
 
-You only need your login. The starter finds the Thortspace SDK DLLs automatically in the standard install
-folder &mdash; **`%LOCALAPPDATA%\ThortspaceX64\current`** (that is
-`C:\Users\<you>\AppData\Local\ThortspaceX64\current`):
+You only need your login:
 
 ```powershell
 $env:THORTSPACE_EMAIL    = "you@example.com"
@@ -68,13 +63,6 @@ and put it **beside the project** (it's gitignored — never committed) or point
 The starter also reads `%LOCALAPPDATA%\ThortspaceMcp\credentials.json` if present, so **one file serves both this
 starter and the standalone MCP server**. Env vars win over the file. It's plaintext on disk &mdash; use a
 **dedicated / test account**, and never commit it (the `credentials.json` pattern is already in `.gitignore`).
-
-Only if your Thortspace is installed somewhere non-standard, point the starter at the install folder that
-contains `Thortspace.Headless.dll`:
-
-```powershell
-$env:THORTSPACE_SDK_DIR = "D:\Apps\Thortspace\current"   # optional override
-```
 
 ## Run it
 
@@ -105,10 +93,6 @@ Done. Open Thortspace (or thort.space) on this account to see sphere ...
 Change the topic by editing the `Topic` constant near the top of `src/Program.cs`. Open the sphere in Thortspace /
 on thort.space to see the result; in **Present mode** you can **play the journey**. (Delete the sphere when you're
 done.)
-
-> The build references `Thortspace.Headless.dll` via the `ThortspaceSdkDir` MSBuild property (defaulting to the
-> standard install path). Override it explicitly if your DLLs are elsewhere:
-> `dotnet build -p:ThortspaceSdkDir="C:\path\to\sdk"`.
 
 ## How it works
 
