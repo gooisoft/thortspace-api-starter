@@ -47,8 +47,9 @@ journey — the same kind of structure this starter builds automatically from a 
 - **Windows** and the **.NET 8 SDK** (or newer) — https://dotnet.microsoft.com/download
 - **A Thortspace account** — the sphere is created in whichever account you log in as. You do NOT need the
   Thortspace app installed: the [`Thortspace.Headless` NuGet package](https://www.nuget.org/packages/Thortspace.Headless)
-  restores automatically and carries the whole engine. (The [app](https://www.thortspace.com/main/get-thortspace-app/)
-  is how you'll *look at* what your code builds, though — so you'll want it anyway.)
+  restores automatically and carries the whole engine. To *look at* what your code builds, open the sphere at
+  [**thort.space**](https://thort.space) in any browser — no install required (or use the
+  [Thortspace app](https://www.thortspace.com/main/get-thortspace-app/) if you have it).
 
 ## Set up
 
@@ -156,6 +157,8 @@ Alongside this code path, Thortspace ships a **standalone MCP server** — `Thor
 `mcp\` folder of an installed Thortspace — that re-exposes this **same `Thortspace.Headless` engine** as
 self-describing MCP tools. It's the no-code way to do the same headless production: an MCP-capable AI
 (Claude Code, Gemini CLI, Claude Cowork, …) launches it over stdio and drives Thortspace by calling tools.
+(Unlike the code path above, this one **does** need the [Thortspace app](https://www.thortspace.com/main/get-thortspace-app/)
+installed — that's where the `Thortspace.Mcp.exe` executable lives.)
 
 > **Full MCP guide → [docs/MCP.md](docs/MCP.md)** — both MCP hosts (standalone stdio + in-app HTTP), the
 > complete **tool reference** (all 60 tools), and a "what to say" demo recipe for each.
