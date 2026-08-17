@@ -104,6 +104,25 @@ internal static class Program
                     engine.SetThortCategory(thortIds[i], heading == "Overview" ? "Overview" : i == 0 ? "Key point" : "Detail");
         }
 
+        // ---- 5b. GROUPS take categories too — the colour lands on the group's boundary circle and its name plate,
+        //          so a cluster's meaning reads when you are zoomed out and no thort text is legible yet. This is a
+        //          SEPARATE dimension from the thort colours above: here the thort colour says what a thought IS
+        //          (Overview / Key point / Detail) while the group colour says where the cluster sits in the
+        //          narrative — two layers you can read at two distances. Colouring a group does NOT colour the
+        //          thorts inside it, which is what makes the two-layer read possible.
+        if (cats.Count >= 6 && groups.Count >= 2)
+        {
+            engine.RenameCategory(Guid.Parse(cats[3]), "Opening");
+            engine.RenameCategory(Guid.Parse(cats[4]), "Body");
+            engine.RenameCategory(Guid.Parse(cats[5]), "Close");
+            for (var i = 0; i < groups.Count; i++)
+                engine.SetGroupCategory(groups[i].Group,
+                    i == 0 ? "Opening" : i == groups.Count - 1 ? "Close" : "Body");
+            // Pass "none" to put a group back on the theme's group colour — a group's default, and the only other
+            // state it has (unlike a thort, which falls back to the set's default category).
+            //   engine.SetGroupCategory(groups[0].Group, "none");
+        }
+
         // ---- 6. LAY IT OUT. 'arrange' clusters related groups + reduces path crossings (the chain -> a clean arc). ----
         engine.Arrange(null, null, null, reduceCrossings: true);
 

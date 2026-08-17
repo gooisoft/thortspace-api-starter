@@ -18,7 +18,9 @@
   <ItemGroup>
     <!-- The Thortspace headless SDK — the engine DLL + its dependency closure, restored from nuget.org
          like any other package. This IS the API; no installed Thortspace app is needed. -->
-    <PackageReference Include="Thortspace.Headless" Version="1.6.727" />
+    <!-- Group categories (SetGroupCategory) need a package built from an engine that HAS them, so this
+         pin must not go below 1.6.900. Highest published when this was written: 1.6.727. -->
+    <PackageReference Include="Thortspace.Headless" Version="1.6.900" />
   </ItemGroup>
 
 </Project>

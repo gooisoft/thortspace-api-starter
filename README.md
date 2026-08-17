@@ -114,6 +114,8 @@ await engine.OpenSphereAsync(localId);               // make it the editable ses
 
 var t = engine.AddThort("an idea");                  // a thort (in a group -> hex lattice)
 engine.Connect(g1, g2, "leads-to");                  // a typed relationship
+engine.SetThortCategory(t, "Risk");                  // colour a thort by category
+engine.SetGroupCategory(g1, "Risk");                 // colour a whole GROUP (its ring + name plate)
 engine.Arrange(null, null, null, true);              // cluster related groups + reduce path crossings
 var trip = engine.CreateTrip("a guided tour");       // a journey...
 engine.AddTripStep(trip, "...", null, g1.ToString(), null, "Step 1", "group");
@@ -121,8 +123,8 @@ engine.AddTripStep(trip, "...", null, g1.ToString(), null, "Step 1", "group");
 await engine.SaveAsync();                             // persist to the cloud
 ```
 
-`Program.cs` does the full version: fetch the topic → a group per section → typed paths → pastel categories →
-`Arrange` → a second arrangement → a journey. The complete engine surface — spheres, thorts, groups, paths,
+`Program.cs` does the full version: fetch the topic → a group per section → typed paths → pastel categories on
+the thorts → a second colour layer on the *groups* → `Arrange` → a second arrangement → a journey. The complete engine surface — spheres, thorts, groups, paths,
 categories, arrangements, layout, **journeys**, login/save — is the `IAgentEngine` interface, documented in
 **[docs/API.md](docs/API.md)**.
 

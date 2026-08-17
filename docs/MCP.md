@@ -163,10 +163,17 @@ live camera/UI, or talk to the app's built-in AI); on the standalone host they a
 | `reorder_path_types(pathTypes[])` | Reorder the path-type palette (permutation of all current). |
 
 ### Categories (the cross-cutting colour dimension)
+
+Categories colour **thorts and groups**, from the same palette but independently: colouring a group does not
+colour the thorts inside it. Colour the *group* when a whole cluster means one thing (it is the colour that
+reads before any thort text is legible); colour *thorts* for a dimension that cuts across groups. A group's
+category applies in every arrangement, because a group is the same group in each layout.
 | Tool | What it does |
 |---|---|
 | `set_category(thortId, category)` | Apply a category (name or id) to a thort. |
 | `set_categories(thortIds[], category)` | Apply one category to many thorts (fast). |
+| `set_group_category(groupId, category?)` | Apply a category to a whole **group** — colours its boundary circle + name plate, so the cluster's meaning reads when zoomed out. `"none"` returns it to the theme's group colour. |
+| `set_group_categories(groupIds[], category?)` | Apply one category to many groups (fast). |
 | `add_category(name?, r?, g?, b?)` | Create a new category (prefer renaming the existing pastel palette). |
 | `rename_category(categoryId, name)` | Give a starting unnamed colour meaning (e.g. 'Risk'). |
 | `recolour_category(categoryId, r, g, b, textR?, textG?, textB?)` | Recolour a category background (**keep pastel**; pass whitish text if dark). |

@@ -93,7 +93,8 @@ synchronous (marshalled + applied on the engine pump, laid out as they apply).
 | `MoveThort` | `bool` `(thortId, targetGroupId?, x?, y?)` | move into a group and/or reposition within it |
 | `RenameGroup` | `bool` `(groupId, name)` | |
 | `GroupOfThort` | `Guid?` `(thortId)` | |
-| `SetThortCategory` | `bool` `(thortId, categoryRef)` | apply a category (colour / cross-cutting dimension) |
+| `SetThortCategory` | `bool` `(thortId, categoryRef)` | apply a category (colour / cross-cutting dimension) to a thort. `categoryRef` = id, name or colour word |
+| `SetGroupCategory` | `bool` `(groupId, categoryRef)` | apply a category to a whole **group** — colours its boundary circle + name plate. `"none"` (or `null`) returns it to the theme's group colour. Applies in **every arrangement** |
 | `AddCategory` | `Guid` `(name, r?, g?, b?)` | new category in the primary set (rgb 0–255) |
 | `RenameCategory` / `RemoveCategory` | `bool` | |
 | `RecolourCategory` | `bool` `(catId, r, g, b, textR?, textG?, textB?)` | background + optional text colour. Keep backgrounds **pastel** (prefer `RenameCategory`); if a background is strong/dark, set whitish text. |
@@ -143,7 +144,7 @@ glance what tours already exist before authoring another.
   "collaborating": true,
   "arrangements": [ { "id": "<guid>", "name": "Initial" } ],
   "thorts":  [ { "id": "<guid>", "text": "...", "groupId": "<guid|null>", "categoryId": "<guid|null>" } ],
-  "groups":  [ { "id": "<guid>", "location": { "x": .., "y": .., "z": .. }, "thortIds": ["<guid>", ...] } ],
+  "groups":  [ { "id": "<guid>", "name": "...", "location": { "x": .., "y": .., "z": .. }, "categoryId": "<guid|null>", "thortIds": ["<guid>", ...] } ],
   "paths":   [ { "from": "<guid>", "to": "<guid>", "relationship": "responds-to" } ],
   "pathTypes":   [ { "id": "<guid>", "name": "...", "color": {"r":..,"g":..,"b":..} } ],
   "categorySet": { "id": "<guid>", "name": "...", "categories": [ { "id": "<guid>", "name": "...", "color": {"r":..,"g":..,"b":..} } ] },
@@ -184,11 +185,20 @@ them:
   *persists* to the cloud on a sync-enabled account (same gate as a private sphere).
 - **Keep category backgrounds pastel.** The default palette is pastel by design so paths + dark text read over
   it — *rename* categories rather than recolouring them strong; reserve full colours for path types.
+- **A group's category is independent of its thorts'.** `SetGroupCategory` colours the group; it does *not*
+  colour the thorts inside it, and `SetThortCategory` does not change the group. That is deliberate — it lets you
+  carry two dimensions at once (group colour = what this cluster is, thort colour = a dimension cutting across
+  every cluster), read at two distances.
+- **A group's category spans every arrangement.** "New arrangement" forks the groups keeping their GUIDs, so a
+  group is the *same group* seen in each layout and its colour follows its identity. There is no per-arrangement
+  group colour, and asking for one would make a sphere's edit history disagree with itself.
+- **A group has only two colour states**: a category, or the theme's group colour. Unlike a thort it does *not*
+  fall back to the category set's default category, so `"none"` is a real destination, not a no-op.
 
 ## Concepts in one paragraph
 
 A **sphere** holds **thorts** (notes) arranged into **groups** on the surface of a sphere; **paths** are typed
-relationships between thorts and/or groups; **categories** colour thorts along a cross-cutting dimension; an
+relationships between thorts and/or groups; **categories** colour thorts *and groups* along a cross-cutting dimension; an
 **arrangement** is a saved spatial layout, so the same content can be re-framed several ways non-destructively.
 Spatial placement *is* meaning in Thortspace — put related things near each other and use relationships and
 arrangements to express structure, rather than dumping a flat list.
