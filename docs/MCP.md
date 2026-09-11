@@ -16,8 +16,9 @@ way whichever host you use.
 | **Standalone** `Thortspace.Mcp.exe` | a **headless** engine in its own process — builds & saves spheres with no GUI | **stdio** | unattended production; let an AI build spheres into your account |
 | **In-app** (the running desktop app) | the sphere you have **open**, live — you watch edits land in real time | **loopback HTTP** | co-creating live; teaching/demoing; editing an open sphere |
 
-Both are part of an installed Thortspace (**version 1.6.721 or later** for the full tool set below —
-the DLL debuted in 1.6.717). There's nothing to build.
+Both are part of an installed Thortspace (**version 1.6.910 or later** for the full tool set below —
+the DLL debuted in 1.6.717, and the tools marked **1.6.910** arrived in that release). There's nothing
+to build.
 
 > **One conceptual model for everything below.** A *sphere* holds *thorts* (short ideas) gathered into
 > *groups* on its surface, joined by typed *paths* (relationships). *Categories* are a cross-cutting
@@ -109,7 +110,7 @@ the steps; just name the task and a well-behaved client will pull the recipe.
 
 ## Tool reference
 
-60 tools (plus one internal dev hook), all on the shared `ThortspaceTools` layer (identical in both
+75 tools (plus one internal dev hook), all on the shared `ThortspaceTools` layer (identical in both
 hosts). The AI reads these descriptions from `tools/list` at connect time — this table is the
 human-readable mirror. Tools marked **(in-app)** only do something in the in-app HTTP host (they move the
 live camera/UI, or talk to the app's built-in AI); on the standalone host they are inert.
@@ -136,6 +137,7 @@ live camera/UI, or talk to the app's built-in AI); on the standalone host they a
 | `link_sphere(sphereId, nearGroupId?)` | Bidirectional **neighbourhood link** to another sphere (build a connected *set*; a journey can span both). |
 | `embed_sphere(sphereId, nearGroupId?)` | One-way **embed** of ANY accessible sphere — including a **public sphere by another author** — as a portal thort on the current sphere; connect portals with pathsteps to build a meta-analysis hub. |
 | `save()` | Save the current sphere to the cloud. |
+| `delete_sphere(sphereId)` | ⛔ **Permanently** delete a sphere by id — it cannot be undone and it removes the sphere for everyone it was shared with. Refuses the sphere that is currently open. |
 
 ### Thorts
 | Tool | What it does |
@@ -145,6 +147,10 @@ live camera/UI, or talk to the app's built-in AI); on the standalone host they a
 | `set_thort_text(thortId, text)` | Edit a thort's text. |
 | `delete_thort(thortId)` | Delete a thort (and its paths). |
 | `move_thort(thortId, groupId?, x?, y?)` | Move into a group and/or reposition within its group. |
+| `separate_thort(thortId)` | Take ONE thort out of its group into a group of its own, leaving the rest intact — the opposite of moving a thort in. |
+| `search_pictures(query, limit=12)` | **1.6.910** Search for a picture to put on a thort. Returns `{title, url, thumbnailUrl}` candidates. A photograph library: no portraits of named people, no logos. |
+| `set_thort_picture(thortId, url, thumbnailUrl?, name?)` | **1.6.910** Put a picture on a thort, using a url from `search_pictures`. The image is copied into the user's own picture library first, so this makes a network round trip. |
+| `clear_thort_picture(thortId)` | **1.6.910** Take the picture off a thort, leaving its text alone. |
 
 ### Groups
 | Tool | What it does |
@@ -152,6 +158,7 @@ live camera/UI, or talk to the app's built-in AI); on the standalone host they a
 | `create_group(thortIds[], placement?)` | Gather existing thorts into a new group. |
 | `move_group(groupId, x, y, z)` | Move a group; (x,y,z) is a direction projected onto the sphere. |
 | `rename_group(groupId, name)` | Set a group's label. |
+| `group_by_category(categorySetId?)` | Reorganise the sphere by a category set: replace the current groups with ONE group per category, moving each thort into the group for the category it carries. |
 
 ### Paths (typed relationships)
 | Tool | What it does |
@@ -203,6 +210,13 @@ category applies in every arrangement, because a group is the same group in each
 | `coagulate()` | Coagulate only: tidy each group into a hex lattice, keep groups close. |
 | `arrange_group(groupId, formation="hex")` | Shape one group: hex (signature) / line / ring / square / freeform. |
 | `arrange(scope?, style?, spacing?, reduceCrossings=true)` | Smart tidy: reduce **path crossings**, cluster related groups; detects chain/star/tree/cycle. Call after building connected structure. |
+| `optimise_layout(iterations=0, capDegrees=0)` | **1.6.910** Lay the sphere out so the pathsteps **running between groups** are as short as they can be, with no group crowding another and few crossings. ⚠️ Never run it on an arrangement whose positions already carry meaning — a spectrum, a timeline, a ranking — where where-a-group-sits *is* the point. (`optimize_layout` is accepted too.) |
+| `distribute_groups()` | Spread ALL groups as evenly as possible over the whole sphere surface (the app's *Distribute Groups*). Ignores paths — maximum room, not shortest paths. |
+| `encircle_group(groupId)` | Wagon-trail layout: arrange the groups path-connected to one core group in a ring around it. Groups not connected to the core stay put. |
+| `arrange_links()` | Spread this sphere's links to OTHER spheres evenly around the arrangement, so its neighbours do not pile up on one spot. Call once per arrangement, after the sphere's own layout. |
+| `set_sphere_radius(radius)` | **1.6.910** How big the sphere is in this arrangement (40–420, default 140). A composition control: a few groups on a large sphere read as empty space. |
+| `set_theme(theme?, backdrop/sphere/surface colours...)` | **1.6.910** How the sphere LOOKS: a built-in theme by name, and/or your own backdrop and sphere-surface colours and surface texture. |
+| `list_themes()` | **1.6.910** The themes you can apply by name, the surface textures that ship with the app, and the theme currently in force. |
 
 ### Journeys (Present-mode "trips" — authoring works everywhere; **playing is in-app**)
 | Tool | What it does |
