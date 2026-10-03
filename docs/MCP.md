@@ -126,6 +126,7 @@ live camera/UI, or talk to the app's built-in AI); on the standalone host they a
 | `snapshot` | The current sphere as JSON: thorts, groups, paths, arrangements, the category set, the sphere's **journeys** (id, name, steps), and the arrangement `radius`. **Call first.** |
 | `list_spheres` | List the account's spheres (their ids). |
 | `search_spheres(query, scope="all", limit=25)` | Search ALL spheres the account can access: own + shared (`mine`), the public library (`public`), or both (`all`). Rows carry `sphereId`, `cloudId`, title, owner, and `ownedByMe`/`sharedWithMe`/`public`/`paywalled`/`canCopy`/`canEdit` flags. |
+| `frame_stats` | **1.6.927** **In-app only.** Read-only frame-rate counters for the current interval: frames, seconds, slow frames (over 33 ms), hitches (over 100 ms), total work ms (Update start to EndDraw, before Present) and a work histogram in 0.5 ms buckets. Cumulative: read twice and subtract to measure a window. |
 
 ### Spheres
 | Tool | What it does |
