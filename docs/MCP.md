@@ -110,7 +110,7 @@ the steps; just name the task and a well-behaved client will pull the recipe.
 
 ## Tool reference
 
-75 tools (plus one internal dev hook), all on the shared `ThortspaceTools` layer (identical in both
+79 tools (plus one internal dev hook), all on the shared `ThortspaceTools` layer (identical in both
 hosts). The AI reads these descriptions from `tools/list` at connect time — this table is the
 human-readable mirror. Tools marked **(in-app)** only do something in the in-app HTTP host (they move the
 live camera/UI, or talk to the app's built-in AI); on the standalone host they are inert.
@@ -124,6 +124,7 @@ live camera/UI, or talk to the app's built-in AI); on the standalone host they a
 | `ping` | Check the connection is alive (returns *pong*). |
 | `cookbook` | Return step-by-step recipes for common multi-step tasks. |
 | `snapshot` | The current sphere as JSON: thorts, groups, paths, arrangements, the category set, the sphere's **journeys** (id, name, steps), and the arrangement `radius`. **Call first.** |
+| `get_sphere_text` | **1.6.954** The open sphere as a Markdown outline: its name as the title, its unnamed groups first as blocks of bullets, then each named group as a heading with its thorts as bullets (a thort with a link is a Markdown link). The same text as the app's Copy Sphere as Text, and what `add_outline` takes back in. |
 | `list_spheres` | List the account's spheres (their ids). |
 | `search_spheres(query, scope="all", limit=25)` | Search ALL spheres the account can access: own + shared (`mine`), the public library (`public`), or both (`all`). Rows carry `sphereId`, `cloudId`, title, owner, and `ownedByMe`/`sharedWithMe`/`public`/`paywalled`/`canCopy`/`canEdit` flags. |
 | `frame_stats` | **1.6.927** **In-app only.** Read-only frame-rate counters for the current interval: frames, seconds, slow frames (over 33 ms), hitches (over 100 ms), total work ms (Update start to EndDraw, before Present) and a work histogram in 0.5 ms buckets. Cumulative: read twice and subtract to measure a window. |
@@ -145,6 +146,7 @@ live camera/UI, or talk to the app's built-in AI); on the standalone host they a
 |---|---|
 | `add_thort(text, groupId?, nearThortId?, nearGroupId?, link?, placement?)` | Add one idea, in context. |
 | `add_thorts(texts[], groupId?, placement?)` | Add many in one call (use for batches). |
+| `add_outline(text)` | **1.6.954** Add Markdown or plain text as thorts in ONE transaction (one undo): `## Heading` starts a named group, `- item` bullets are its thorts, bullets before any heading form an unnamed group, a top `# Title` is skipped, and `[text](url)` or a bare URL becomes the thort's link. Plain lines become thorts in one group. Returns `{added}`. |
 | `set_thort_text(thortId, text)` | Edit a thort's text. |
 | `delete_thort(thortId)` | Delete a thort (and its paths). |
 | `move_thort(thortId, groupId?, x?, y?)` | Move into a group and/or reposition within its group. |
